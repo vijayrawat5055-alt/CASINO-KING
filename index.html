@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>CASINO KING</title>
+<style>:root{color-scheme:dark;--gold:#e2b04a}*{box-sizing:border-box;margin:0}
+body{min-height:100vh;display:grid;place-items:center;background:radial-gradient(#3b0e0e,#0b0404);color:#fff;font-family:Georgia,serif;padding:20px}
+.w{display:grid;gap:14px;width:min(440px,100%)}h1{text-align:center;color:var(--gold);font-size:2.2rem;text-shadow:0 3px 0 #7a1a1a}
+.card{background:#140a06;border:2px solid var(--gold);border-radius:16px;padding:20px;display:grid;gap:12px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button,.g{font:inherit;color:#fff;background:#140a06;border:2px solid var(--gold);border-radius:10px;padding:11px;cursor:pointer;text-align:center;text-decoration:none}
+button.on{background:#7b2db0}button.go{background:#1d8a37;font-size:1.1rem}
+input{font:inherit;font-size:1rem;background:#000;color:#fff;border:2px solid #555;border-radius:8px;padding:11px;width:100%}
+label{display:grid;gap:4px;font-size:.9rem}#err{color:#f88;min-height:1.2em}
+.g{display:block;padding:22px;text-align:left}.g b{display:block;font-size:1.7rem;color:var(--gold)}
+button:focus-visible,input:focus-visible,.g:focus-visible{outline:3px solid #fff}[hidden]{display:none!important}</style></head>
+<body><div class="w"><h1>CASINO KING</h1>
+<form class="card" id="auth"><div class="tabs"><button type="button" id="tl" class="on">Log in</button><button type="button" id="ts">Sign up</button></div>
+ <label id="nl" hidden>Player name<input id="nm" maxlength="14" autocomplete="nickname"></label>
+ <label>Email<input id="em" type="email" required autocomplete="email"></label>
+ <label>Password (6+ characters)<input id="pw" type="password" required minlength="6" autocomplete="current-password"></label>
+ <div id="err" role="alert"></div><button class="go" id="sub">Log in</button></form>
+<div id="lobby" hidden class="w"><div class="card" style="grid-template-columns:1fr auto;align-items:center"><div>Welcome, <b id="who"></b><br>🪙 <span id="bal"></span></div><button id="out">Log out</button></div>
+ <a class="g" href="/ikke.html"><b>3 IKKE</b>Teen Patti, 3 to 6 players per table</a>
+ <a class="g" href="/mang.html"><b>MANG</b>Pick a card, bet Andar or Bahar, win 2x</a></div></div>
+<script>
+const $=id=>document.getElementById(id);let mode='login';
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Something went wrong');return j});
+function lobby(d){$('auth').hidden=true;$('lobby').hidden=false;$('who').textContent=d.name;$('bal').textContent=d.bal.toLocaleString('en-IN')}
+function setMode(m){mode=m;$('tl').classList.toggle('on',m==='login');$('ts').classList.toggle('on',m==='signup');$('nl').hidden=m==='login';$('sub').textContent=m==='login'?'Log in':'Create account';$('pw').autocomplete=m==='login'?'current-password':'new-password';$('err').textContent=''}
+$('tl').onclick=()=>setMode('login');$('ts').onclick=()=>setMode('signup');
+$('auth').onsubmit=async e=>{e.preventDefault();$('err').textContent='';$('sub').disabled=true;
+ try{const d=await post(mode==='login'?'/api/login':'/api/signup',{email:$('em').value,password:$('pw').value,name:$('nm').value});try{localStorage.setItem('t3',d.token)}catch{}lobby(d)}
+ catch(x){$('err').textContent=x.message}$('sub').disabled=false};
+$('out').onclick=()=>{try{localStorage.removeItem('t3')}catch{}location.reload()};
+let t;try{t=localStorage.getItem('t3')}catch{}if(t)post('/api/me',{token:t}).then(lobby).catch(()=>{try{localStorage.removeItem('t3')}catch{}});
+</script></body></html>
