@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CASINO KING admin</title>
+<style>:root{color-scheme:dark}*{box-sizing:border-box;margin:0}body{background:#0b0404;color:#fff;font-family:Georgia,serif;padding:14px}
+.w{max-width:960px;margin:auto;display:grid;gap:12px}h1,h2{color:#e2b04a}
+input,button{font:inherit;padding:9px;border-radius:8px;border:2px solid #555;background:#140a06;color:#fff}button{border-color:#e2b04a;cursor:pointer}
+button.g{background:#1d8a37}button.r{background:#a32d2d}.card{background:#140a06;border:2px solid #e2b04a;border-radius:12px;padding:14px;display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{padding:7px 6px;border-bottom:1px solid #3a2a20;text-align:left}th{color:#e2b04a}
+tr.u{cursor:pointer}tr.u:hover{background:#2a140a}#msg{min-height:1.2em;color:#ffd978}.p{color:#7f7}.m{color:#f88}[hidden]{display:none!important}</style></head><body><div class="w">
+<h1>CASINO KING admin</h1>
+<form class="card" id="lg"><div class="row"><input id="au" placeholder="Admin user" autocomplete="username"><input id="ap" type="password" placeholder="Admin password" autocomplete="current-password"><button class="g">Log in</button></div></form>
+<div id="main" hidden class="w">
+ <div class="card"><div class="row"><input id="q" placeholder="Search name, email or user ID"><button id="rf">Refresh</button><button id="lo">Log out</button></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>User ID</th><th>Name</th><th>Email</th><th>Coins</th><th>State</th></tr></thead><tbody id="us"></tbody></table></div></div>
+ <div class="card" id="mg" hidden><h2 id="mt"></h2>
+  <div class="row"><input id="am" type="number" placeholder="Coins" min="1"><input id="nt" placeholder="Note (optional)"><button class="g" id="ad">Add coins</button><button class="r" id="cu">Cut coins</button></div>
+  <div class="row"><input id="np" type="text" placeholder="New password (6+ characters)" autocomplete="off"><button id="cp">Change password</button><button id="st">Show statement</button></div>
+  <div style="overflow-x:auto"><table id="sh" hidden><thead><tr><th>Date</th><th>Game</th><th>Details</th><th>Coins</th><th>Balance</th></tr></thead><tbody id="sb"></tbody></table></div></div>
+ <div id="msg" role="status"></div></div></div>
+<script>
+const $=id=>document.getElementById(id),f=n=>n.toLocaleString('en-IN'),e=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let K=sessionStorage.getItem('adm'),U=[],cur=null;
+const api=(u,b)=>fetch(u,{method:b?'POST':'GET',headers:{'Content-Type':'application/json','x-admin':K||''},body:b?JSON.stringify(b):undefined}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok){if(r.status===401&&K){K=null;sessionStorage.removeItem('adm');show()}throw new Error(j.error||'Failed')}return j});
+const say=m=>$('msg').textContent=m;
+function show(){$('lg').hidden=!!K;$('main').hidden=!K;if(K)load()}
+function draw(){const s=$('q').value.toLowerCase();$('us').innerHTML=U.filter(u=>(u.uid+u.name+u.email).toLowerCase().includes(s)).map(u=>`<tr class="u" data-u="${u.uid}"><td>${u.uid}</td><td>${e(u.name)}</td><td>${e(u.email)}</td><td>${f(u.bal)}</td><td>${u.online?'Playing':''}</td></tr>`).join('')||'<tr><td colspan="5">No users.</td></tr>'}
+function load(){return api('/api/admin/users').then(d=>{U=d;draw()}).catch(x=>say(x.message))}
+$('lg').onsubmit=ev=>{ev.preventDefault();fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:$('au').value,password:$('ap').value})}).then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error);K=j.admin;sessionStorage.setItem('adm',K);$('ap').value='';show()}).catch(x=>alert(x.message))};
+$('lo').onclick=()=>{K=null;sessionStorage.removeItem('adm');show()};$('rf').onclick=load;$('q').oninput=draw;
+$('us').onclick=ev=>{const r=ev.target.closest('tr.u');if(!r)return;cur=U.find(u=>u.uid===r.dataset.u);$('mg').hidden=false;$('sh').hidden=true;$('mt').textContent=`${cur.name} (${cur.uid}) · ${f(cur.bal)} coins`;say('')};
+function coins(sign){const a=Math.abs(parseInt($('am').value)||0);if(!cur||!a)return say('Pick a user and enter coins');api('/api/admin/coins',{uid:cur.uid,amount:sign*a,note:$('nt').value}).then(d=>{say(`Done. New balance ${f(d.bal)}`);$('am').value='';$('nt').value='';load().then(()=>{cur=U.find(u=>u.uid===cur.uid);$('mt').textContent=`${cur.name} (${cur.uid}) · ${f(cur.bal)} coins`})}).catch(x=>say(x.message))}
+$('ad').onclick=()=>coins(1);$('cu').onclick=()=>coins(-1);
+$('cp').onclick=()=>{if(!cur)return;api('/api/admin/password',{uid:cur.uid,password:$('np').value}).then(()=>{say('Password changed');$('np').value=''}).catch(x=>say(x.message))};
+$('st').onclick=()=>{if(!cur)return;api('/api/admin/statement',{uid:cur.uid}).then(d=>{$('sh').hidden=false;$('sb').innerHTML=d.items.map(i=>`<tr><td>${new Date(i.t).toLocaleString('en-IN')}</td><td>${e(i.game)}</td><td>${i.type} ${e(i.note)}</td><td class="${i.amt>0?'p':'m'}">${i.amt>0?'+':''}${f(i.amt)}</td><td>${f(i.bal)}</td></tr>`).join('')||'<tr><td colspan="5">No entries.</td></tr>'}).catch(x=>say(x.message))};
+show();
+</script></body></html>

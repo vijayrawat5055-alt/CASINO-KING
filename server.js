@@ -13,24 +13,31 @@ app.get('/health', (_, r) => r.json({ tables: tables.size, players: players.size
 const srv = http.createServer(app);
 const io = new Server(srv, { cors: { origin: '*' } });
 
-const BOOT = 20, TURN_MS = 10000, NEXT_MS = 6000, START_BAL = 125430, MIN_P = 3, MAX_P = 6;
+const BOOT = 20, TURN_MS = 10000, NEXT_MS = 6000, START_BAL = 0, GRACE_MS = 120000, MIN_P = 3, MAX_P = 6;
 const tables = new Map(), open = new Set(), players = new Map();
 let seq = 1;
 // ---------- database: JSON file store (players + balances), debounced atomic writes ----------
 const fs = require('fs'), DBF = process.env.DB_FILE || __dirname + '/data.json'; let dbT = null;
 try { for (const p of JSON.parse(fs.readFileSync(DBF, 'utf8'))) players.set(p.token, { ...p, table: null, sock: null }); } catch {}
+for (const p of players.values()) p.uid ||= crypto.randomBytes(4).toString('hex');
+let mangApi = null;
+function led(p, type, game, amt, note) {          // statement entry for a player
+  (p.ledger ||= []).push({ t: Date.now(), type, game, amt, bal: p.bal, note: note || '' });
+  if (p.ledger.length > 400) p.ledger.splice(0, p.ledger.length - 400);
+}
 function saveDB() { clearTimeout(dbT); dbT = setTimeout(() => { try {
-  const o = [...players.values()].map(({ token, name, bal, email, salt, pw }) => ({ token, name, bal }));
+  const o = [...players.values()].map(({ token, name, bal, email, salt, pw, uid, avatar, ledger }) => ({ token, name, bal }));
   fs.writeFileSync(DBF + '.tmp', JSON.stringify(o)); fs.renameSync(DBF + '.tmp', DBF);
 } catch (e) { console.error('db', e.message); } }, 1000); }
 
 // ---------- CASINO KING accounts: email + password (scrypt hash), shared by both games ----------
-app.use(express.json({ limit: '2kb' }));
-const byEmail = new Map(); for (const p of players.values()) if (p.email) byEmail.set(p.email, p);
+const small = express.json({ limit: '2kb' });
+app.use((q, r, n) => q.path === '/api/avatar' ? n() : small(q, r, n));
+const byEmail = new Map(), byUid = new Map(); for (const p of players.values()) { if (p.email) byEmail.set(p.email, p); byUid.set(p.uid, p); }
 const hits = new Map();
 const limited = ip => { const n = Date.now(), a = (hits.get(ip) || []).filter(t => n - t < 60000); a.push(n); hits.set(ip, a); return a.length > 10; };
 const hashPw = (pw, salt) => crypto.scryptSync(pw, salt, 32);
-const sess = p => ({ token: p.token, name: p.name, bal: p.bal });
+const sess = p => ({ token: p.token, name: p.name, bal: p.bal, uid: p.uid, av: p.avatar ? 1 : 0 });
 app.post('/api/signup', (req, res) => {
   if (limited(req.ip)) return res.status(429).json({ error: 'Too many attempts. Try again in a minute.' });
   const { email, password, name } = req.body || {}, e = String(email || '').trim().toLowerCase();
@@ -38,17 +45,57 @@ app.post('/api/signup', (req, res) => {
   if (String(password || '').length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
   if (byEmail.has(e)) return res.status(409).json({ error: 'This email is already registered. Log in instead.' });
   const salt = crypto.randomBytes(16).toString('hex'), token = crypto.randomUUID();
-  const p = { token, name: String(name || e.split('@')[0]).trim().slice(0, 14) || 'Player', bal: START_BAL, email: e, salt, pw: hashPw(String(password), salt).toString('hex'), table: null, sock: null };
-  players.set(token, p); byEmail.set(e, p); saveDB(); res.json(sess(p));
+  const p = { token, name: String(name || e.split('@')[0]).trim().slice(0, 14) || 'Player', bal: START_BAL, email: e, salt, uid: crypto.randomBytes(4).toString('hex'), ledger: [], pw: hashPw(String(password), salt).toString('hex'), table: null, sock: null };
+  players.set(token, p); byEmail.set(e, p); byUid.set(p.uid, p); saveDB(); res.json(sess(p));
 });
 app.post('/api/login', (req, res) => {
   if (limited(req.ip)) return res.status(429).json({ error: 'Too many attempts. Try again in a minute.' });
   const { email, password } = req.body || {}, p = byEmail.get(String(email || '').trim().toLowerCase());
   const good = p && crypto.timingSafeEqual(hashPw(String(password || ''), p.salt), Buffer.from(p.pw, 'hex'));
   if (!good) return res.status(401).json({ error: 'Wrong email or password' });
+  if (p.blocked) return res.status(403).json({ error: 'This account is blocked' });
   res.json(sess(p));
 });
 app.post('/api/me', (req, res) => { const p = players.get((req.body || {}).token); p && p.email ? res.json(sess(p)) : res.status(401).json({ error: 'Session expired' }); });
+
+const who = (q) => { const p = players.get((q.body || {}).token); return p && p.email ? p : null; };
+function notify(p) { if (p.table) { const t = tables.get(p.table); if (t) send(t); } if (mangApi) mangApi.notify(p.token); }
+app.post('/api/avatar', express.json({ limit: '120kb' }), (q, r) => {
+  const p = who(q), img = String((q.body || {}).image || '');
+  if (!p) return r.status(401).json({ error: 'Login again' });
+  if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(img) || img.length > 100000) return r.status(400).json({ error: 'Use a JPEG photo (it is resized automatically)' });
+  p.avatar = img.split(',')[1]; saveDB(); r.json({ ok: 1 });
+});
+app.get('/api/avatar/:uid', (q, r) => {
+  const p = byUid.get(q.params.uid); if (!p || !p.avatar) return r.sendStatus(404);
+  r.set({ 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' }).send(Buffer.from(p.avatar, 'base64'));
+});
+app.post('/api/statement', (q, r) => { const p = who(q); if (!p) return r.status(401).json({ error: 'Login again' }); r.json({ bal: p.bal, items: (p.ledger || []).slice(-200).reverse() }); });
+
+// ---------- admin panel (one for both games). Set ADMIN_USER and ADMIN_PASS in the server environment ----------
+const adm = new Map(), A_USER = process.env.ADMIN_USER, A_PASS = process.env.ADMIN_PASS;
+const eq = (a, b) => crypto.timingSafeEqual(crypto.createHash('sha256').update(String(a)).digest(), crypto.createHash('sha256').update(String(b)).digest());
+const needAdmin = (q, r, n) => { const k = q.get('x-admin'); if (k && adm.get(k) > Date.now()) return n(); r.status(401).json({ error: 'Admin login required' }); };
+app.post('/api/admin/login', (q, r) => {
+  if (limited(q.ip)) return r.status(429).json({ error: 'Too many attempts. Try again in a minute.' });
+  if (!A_USER || !A_PASS) return r.status(503).json({ error: 'Admin is not set up on the server yet' });
+  const { user, password } = q.body || {};
+  if (!eq(user, A_USER) || !eq(password, A_PASS)) return r.status(401).json({ error: 'Wrong admin user or password' });
+  const k = crypto.randomBytes(24).toString('hex'); adm.set(k, Date.now() + 12 * 3600e3); r.json({ admin: k });
+});
+app.get('/api/admin/users', needAdmin, (q, r) => r.json([...players.values()].filter(p => p.email).map(p => ({ uid: p.uid, name: p.name, email: p.email, bal: p.bal, online: !!p.table }))));
+app.post('/api/admin/coins', needAdmin, (q, r) => {
+  const { uid, amount, note } = q.body || {}, p = byUid.get(uid), a = Math.trunc(Number(amount));
+  if (!p || !a || Math.abs(a) > 1e9) return r.status(400).json({ error: 'Enter a valid user and amount' });
+  if (p.bal + a < 0) return r.status(400).json({ error: 'Balance cannot go below zero' });
+  p.bal += a; led(p, a > 0 ? 'admin_add' : 'admin_cut', 'Admin', a, String(note || '').slice(0, 60)); saveDB(); notify(p); r.json({ bal: p.bal });
+});
+app.post('/api/admin/password', needAdmin, (q, r) => {
+  const { uid, password } = q.body || {}, p = byUid.get(uid);
+  if (!p || String(password || '').length < 6) return r.status(400).json({ error: 'Pick a user and a password of 6+ characters' });
+  p.salt = crypto.randomBytes(16).toString('hex'); p.pw = hashPw(String(password), p.salt).toString('hex'); saveDB(); r.json({ ok: 1 });
+});
+app.post('/api/admin/statement', needAdmin, (q, r) => { const p = byUid.get((q.body || {}).uid); if (!p) return r.status(404).json({ error: 'No such user' }); r.json({ name: p.name, bal: p.bal, items: (p.ledger || []).slice(-200).reverse() }); });
 
 // ---------- hand ranking: Trail > Pure Seq > Seq > Color > Pair > High (AAA highest) ----------
 function score(cards) {
@@ -89,7 +136,7 @@ function view(t, me) {
     table: t.id, phase: t.phase, pot: t.pot, chaal: t.chaal, boot: BOOT, deadline: t.deadline,
     now: Date.now(), turn: t.phase === 'play' ? t.turn : -1, dealer: t.dealer, result: t.result,
     seats: t.seats.map(s => ({
-      token: s.token === me ? s.token : undefined, id: s.id, name: s.name, bal: s.p.bal, in: s.in, active: s.active,
+      token: s.token === me ? s.token : undefined, id: s.id, uid: s.p.uid, av: s.p.avatar ? 1 : 0, grace: s.grace ? Math.max(0, s.grace - Date.now()) : 0, name: s.name, bal: s.p.bal, in: s.in, active: s.active,
       seen: s.seen, bet: s.bet, connected: s.connected, me: s.token === me,
       cards: s.in && ((s.token === me && (s.seen || t.reveal)) || (t.reveal && s.active)) ? s.cards : null
     }))
@@ -104,24 +151,31 @@ function maybeStart(t) {
 }
 function startRound(t) {
   t.startT = null; t.result = null; t.reveal = false;
+  const now = Date.now();
   t.seats = t.seats.filter(s => {
-    const keep = !s.left && s.connected && s.p.bal >= BOOT;
-    if (!keep) s.p.table = null;
+    if (s.p.bal >= BOOT) s.grace = 0; else if (!s.grace) s.grace = now + GRACE_MS;   // out of coins: 2 minutes to get coins added
+    const keep = !s.left && s.connected && (s.p.bal >= BOOT || now < s.grace);
+    if (!keep) { s.p.table = null; s.p.sock?.emit('kicked'); }
     return keep;
   });
   updateOpen(t);
-  if (t.seats.length < MIN_P) { t.phase = 'wait'; send(t); if (!t.seats.length) { tables.delete(t.id); open.delete(t.id); } return; }
+  if (t.seats.filter(s => s.p.bal >= BOOT).length < MIN_P) {
+    t.phase = 'wait'; t.seats.forEach(s => { s.in = false; s.active = false; }); send(t);
+    if (!t.seats.length) { tables.delete(t.id); open.delete(t.id); } else t.startT = setTimeout(() => startRound(t), 5000);
+    return;
+  }
   const d = newDeck();
   t.pot = 0; t.chaal = BOOT; t.phase = 'play';
   t.seats.forEach((s, i) => {
-    s.cards = d.slice(i * 3, i * 3 + 3); s.in = true; s.active = true; s.seen = false; s.bet = 0;
-    pay(s, BOOT, t);
+    s.cards = d.slice(i * 3, i * 3 + 3); s.in = s.p.bal >= BOOT; s.active = s.in; s.seen = false; s.bet = 0;
+    if (s.in) pay(s, BOOT, t);
   });
   t.dealer = (t.dealer + 1) % t.seats.length;
-  t.turn = (t.dealer + 1) % t.seats.length;
+  t.turn = t.dealer;
+  do { t.turn = (t.turn + 1) % t.seats.length; } while (!t.seats[t.turn].in);
   arm(t);
 }
-function pay(s, amt, t) { s.p.bal -= amt; s.bet += amt; t.pot += amt; saveDB(); }
+function pay(s, amt, t) { s.p.bal -= amt; s.bet += amt; t.pot += amt; led(s.p, 'bet', '3 IKKE', -amt); saveDB(); }
 function arm(t) {
   clearTimeout(t.timer);
   const s = t.seats[t.turn], ms = s.connected ? TURN_MS : 1000;
@@ -137,7 +191,7 @@ function advance(t) {
 }
 function finish(t, w, reveal) {
   clearTimeout(t.timer);
-  w.p.bal += t.pot; saveDB();
+  w.p.bal += t.pot; led(w.p, 'win', '3 IKKE', t.pot); saveDB();
   t.result = { winner: w.name, pot: t.pot, hand: handName(w.cards) };
   t.reveal = reveal; t.phase = 'wait';
   t.seats.forEach(s => { s.in = s.in; });
@@ -220,7 +274,7 @@ io.on('connection', sock => {
     let p = token && players.get(token);
     if (!p || !p.email) return sock.emit('authfail');          // must be logged in to CASINO KING
     p.sock = sock; sock.data.token = token;
-    if (p.bal < BOOT * 10) p.bal = START_BAL; saveDB();
+    saveDB();
     sock.emit('joined', { token, bal: p.bal });
     let t = p.table && tables.get(p.table);
     let s = t && t.seats.find(x => x.token === token);
@@ -252,6 +306,6 @@ function leave(sock, voluntary) {
   if (tables.has(t.id)) send(t);
 }
 
-require('./mang')(io, players, saveDB, START_BAL);   // Mang game on namespace /mang
+mangApi = require('./mang')(io, players, saveDB, START_BAL, led);   // Mang game on namespace /mang
 const PORT = process.env.PORT || 3000;
 srv.listen(PORT, () => console.log('3 IKKE server on :' + PORT));

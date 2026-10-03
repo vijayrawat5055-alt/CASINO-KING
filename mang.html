@@ -22,7 +22,7 @@ body{background:radial-gradient(#10243f,#070a12);color:#fff;font-family:Georgia,
 #hist .andar{border-color:var(--in)}#hist .bhaar{border-color:var(--bh)}
 #grid{display:grid;grid-template-columns:repeat(13,1fr);gap:4px}
 .cell{padding:8px 0;border-radius:6px;border:2px solid #444;background:#fff;color:#111;font:inherit;font-size:.9rem;cursor:pointer;position:relative}
-.cell.red{color:#c00}.cell.sel{outline:3px solid var(--gold);transform:scale(1.12);z-index:1}
+.cell.red{color:#c00}.cell svg{display:block;width:26px;height:36px;margin:auto}.cell i{font-style:normal;font-size:.75rem;display:block}.cd svg{width:44px;height:62px}.cd i{display:none}.cell.sel{outline:3px solid var(--gold);transform:scale(1.12);z-index:1}
 .cell.d{cursor:default;opacity:.35;background:#888}.cell.d.andar{border-color:var(--in)}.cell.d.bhaar{border-color:var(--bh)}
 .cell.m::after{content:"";position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:#2c2}
 @media(max-width:640px){#grid{grid-template-columns:repeat(7,1fr)}.cell{padding:10px 0}}
@@ -35,7 +35,7 @@ input{width:120px;font:inherit;font-size:1.1rem;background:#000;color:#fff;borde
 #bets{font-size:.95rem;display:grid;gap:3px;max-height:140px;overflow:auto}.w1{color:#7f7}.l1{color:#f88}
 #toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#000d;border:2px solid var(--gold);border-radius:10px;padding:8px 16px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}#toast.on{opacity:1}
 </style></head><body><div class="w">
- <div class="top"><h1>MANG</h1><div class="pill" id="bal">🪙 0</div><button class="b" id="snd">SOUND ON</button><button class="b" id="mus">MUSIC ON</button><a class="b" href="/" style="text-decoration:none">LOBBY</a></div>
+ <div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="/logo.jpg" alt="CASINO KING" style="height:52px;mix-blend-mode:screen">MANG</h1><div class="pill" id="bal">🪙 0</div><button class="b" id="snd">SOUND ON</button><button class="b" id="mus">MUSIC ON</button><a class="b" href="/statement.html" style="text-decoration:none">STATEMENT</a><a class="b" href="/" style="text-decoration:none">LOBBY</a></div>
  <div id="ph">Connecting…</div>
  <div class="zones"><div class="z a"><h2>ANDAR</h2><div class="cd" id="la">–</div></div><div class="z b"><h2>BHAAR</h2><div class="cd" id="lb">–</div></div></div>
  <div id="hist" aria-label="Cards dealt so far"></div>
@@ -49,9 +49,11 @@ input{width:120px;font:inherit;font-size:1.1rem;background:#000;color:#fff;borde
   <div id="bets"></div></div></div>
 <div id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
+<script src="/cards.js"></script>
 <script>
-const $=id=>document.getElementById(id),f=n=>n.toLocaleString('en-IN'),SU=['♠','♥','♦','♣'],RK={11:'J',12:'Q',13:'K',14:'A'},ORD=[14,2,3,4,5,6,7,8,9,10,11,12,13];
+const $=id=>document.getElementById(id),f=n=>n.toLocaleString('en-IN'),SU=['♠','♥','♣','♦'],RK={11:'J',12:'Q',13:'K',14:'A'},ORD=[14,2,3,4,5,6,7,8,9,10,11,12,13];
 const lab=k=>{const[r,s]=k.split('-').map(Number);return(RK[r]||r)+SU[s]};
+const face=(r,s)=>{const t=(RK[r]||r)+SU[s];return r>=11&&r<=13?court(r,s%2?'#c00':'#222')+'<i>'+t+'</i>':t};
 let S=null,ME={bal:0,bets:[]},sel=null,side='andar',left=0,prevLen=0,prevWon=0;
 /* audio (synthesised) */
 let AC,sOn=true,mOn=true,mt=null;
@@ -68,12 +70,12 @@ $('mus').onclick=e=>{mOn=!mOn;e.target.textContent='MUSIC '+(mOn?'ON':'OFF');mus
 /* UI */
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200)}
 function grid(){const dealt={};S.log.forEach(x=>dealt[x.r+'-'+x.s]=x.side);const mine=new Set(ME.bets.filter(b=>!b.done).map(b=>b.k));let h='';
- for(let s=0;s<4;s++)for(const r of ORD){const k=r+'-'+s,d=dealt[k];h+=`<button class="cell ${s%2?'red':''} ${d?'d '+d:''} ${sel===k?'sel':''} ${mine.has(k)?'m':''}" data-k="${k}" ${d?'disabled':''} aria-label="${lab(k)}">${lab(k)}</button>`}
+ for(let s=0;s<4;s++)for(const r of ORD){const k=r+'-'+s,d=dealt[k];h+=`<button class="cell ${s%2?'red':''} ${d?'d '+d:''} ${sel===k?'sel':''} ${mine.has(k)?'m':''}" data-k="${k}" ${d?'disabled':''} aria-label="${lab(k)}">${face(r,s)}</button>`}
  $('grid').innerHTML=h;if(sel&&dealt[sel])sel=null}
 function render(){if(!S)return;
  $('bal').textContent='🪙 '+f(ME.bal);grid();
  const L=S.log;let la=null,lb=null;for(const x of L){if(x.side==='andar')la=x;else lb=x}
- const cd=(e,x)=>{e.className='cd'+(x&&x.s%2?' red':'');e.textContent=x?(RK[x.r]||x.r)+SU[x.s]:'–'};cd($('la'),la);cd($('lb'),lb);
+ const cd=(e,x)=>{e.className='cd'+(x&&x.s%2?' red':'');e.innerHTML=x?face(x.r,x.s):'–'};cd($('la'),la);cd($('lb'),lb);
  if(L.length>prevLen){const e=L[L.length-1].side==='andar'?$('la'):$('lb');e.classList.add('pop');play('deal')}
  if(L.length<prevLen)prevLen=0;
  $('hist').innerHTML=L.slice(-14).map(x=>`<span class="${x.side} ${x.s%2?'red':''}">${(RK[x.r]||x.r)+SU[x.s]}</span>`).join('');

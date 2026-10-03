@@ -1,12 +1,14 @@
 // MANG — one continuous global room (unlimited players), Andar/Bahar card bets.
 // The shuffled deck stays on the server; clients only ever receive cards that were already dealt.
 const crypto = require('crypto');
-module.exports = (io, players, saveDB, START_BAL) => {
+module.exports = (io, players, saveDB, START_BAL, led) => {
   const nsp = io.of('/mang');
   const BREAK = +(process.env.MANG_BREAK_MS ?? 20000), ROUND = +(process.env.MANG_ROUND_MS ?? 240000), HOLD = +(process.env.MANG_HOLD_MS ?? 20000);
   const CARD = (ROUND - 3 * BREAK) / 52, LIM = [17, 35, 52], MINB = 10, WIN = 2;   // win pays 2x stake
   let R = null;
   const key = c => c.r + '-' + c.s;
+  const SUI = ['♠', '♥', '♣', '♦'], RKL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+  const lab = k => { const [r, s] = k.split('-').map(Number); return (RKL[r] || r) + SUI[s]; };
   function deck() {
     const d = []; for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) d.push({ r, s });
     for (let i = 51; i > 0; i--) { const j = crypto.randomInt(i + 1); [d[i], d[j]] = [d[j], d[i]]; }
@@ -35,7 +37,7 @@ module.exports = (io, players, saveDB, START_BAL) => {
     R.log.push({ c, side }); R.dealtSet.add(k);
     for (const [tok, arr] of R.by) for (const b of arr) if (!b.done && b.k === k) {
       b.done = true; t.add(tok);
-      if (b.side === side) { b.won = true; players.get(tok).bal += b.amt * WIN; }
+      if (b.side === side) { b.won = true; const pp = players.get(tok); pp.bal += b.amt * WIN; led(pp, 'win', 'Mang', b.amt * WIN, lab(k) + ' ' + side); }
     }
     if (t.size) saveDB();
     pushState(); if (t.size) pushMe(t);
@@ -49,7 +51,6 @@ module.exports = (io, players, saveDB, START_BAL) => {
     sock.on('join', ({ token, name } = {}) => {
       const p = token && players.get(token);
       if (!p || !p.email) return sock.emit('authfail');          // must be logged in to CASINO KING
-      if (p.bal < MINB) p.bal = START_BAL;
       saveDB(); sock.data.token = token;
       sock.emit('joined', { token }); sock.emit('state', pub()); sock.emit('me', me(token));
     });
@@ -65,10 +66,11 @@ module.exports = (io, players, saveDB, START_BAL) => {
       const arr = R.by.get(p.token) || [];
       const ex = arr.find(b => b.k === k && b.side === side && !b.done);
       if (!ex && arr.length >= 60) return err('Too many bets this round');
-      p.bal -= amt;
+      p.bal -= amt; led(p, 'bet', 'Mang', -amt, lab(k) + ' ' + side);
       if (ex) ex.amt += amt; else arr.push({ k, side, amt, done: false, won: false });
       R.by.set(p.token, arr); saveDB(); sock.emit('me', me(p.token));
     });
   });
   startRound();
+  return { notify: tok => pushMe(new Set([tok])) };
 };
