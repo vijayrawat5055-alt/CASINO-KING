@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "casinoking.apk",
+        "sha256_cert_fingerprints": ["67:83:E6:46:7A:AE:BC:DD:8E:AC:9A:DB:60:D6:50:DD:08:CE:24:00:94:FA:D7:4C:9C:FE:F5:58:C0:BB:0D:75"]
+      }
+    }]
