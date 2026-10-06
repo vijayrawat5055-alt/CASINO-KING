@@ -1,0 +1,153 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3 IKKE</title><link rel="icon" href="data:,">
+<style>
+:root{color-scheme:dark;--gold:#e2b04a;--ink:#140a06}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:radial-gradient(#3b0e0e,#0b0404);color:#fff;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.st{position:relative;width:100%;max-width:min(1400px,calc(100vh*1.25));aspect-ratio:1400/1120;container-type:inline-size;font-size:1.5cqw}
+.a{position:absolute}
+.pill{background:var(--ink);border:.2cqw solid var(--gold);border-radius:1cqw;padding:.6cqw 1.2cqw}
+.b{background:var(--ink);border:.2cqw solid var(--gold);border-radius:1cqw;color:#fff;font:inherit;cursor:pointer;padding:.6cqw 1cqw;text-align:left;line-height:1.2}
+.b:disabled{opacity:.35;cursor:default}.b small{display:block;font-size:.75em;opacity:.8}
+.b{background-image:linear-gradient(#3a2414,#100905);box-shadow:inset 0 .15cqw .3cqw #ffffff22,0 .2cqw .5cqw #000a}.g{background:linear-gradient(#27a844,#12662a)}.o{background:linear-gradient(#f0841f,#b85a0c)}.p{background:linear-gradient(#9a38d4,#5e1b8c)}.r{background:linear-gradient(#d83a40,#8f1a20)}
+#seats{inset:0;pointer-events:none}
+.seat{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:.6cqw;white-space:nowrap}
+.av{width:6.4cqw;height:6.4cqw;border-radius:50%;border:.35cqw solid #2d6bd6;background:#222;display:grid;place-items:center;font-size:3.4cqw}
+.av img{width:100%;height:100%;border-radius:50%;object-fit:cover}.me .av{border-color:var(--gold)}.turn .av{box-shadow:0 0 1.6cqw 1cqw #ffd54a}
+.inf{background:var(--ink);border:.15cqw solid #5b4426;border-radius:.8cqw;padding:.4cqw 1cqw;text-align:center}
+.inf b{display:block;font-size:1.1em}.inf i{font-style:normal;color:#ffd978}
+.bd{display:block;border-radius:.6cqw;font-size:.85em;padding:.1cqw 1cqw;margin-top:.3cqw;background:#1b4d9b}.bd.s{background:#1f7a2e}.bd.x{background:#555}
+.bc{color:#ffd978;font-size:.9em}.dl{width:2.6cqw;height:2.6cqw;border-radius:50%;background:var(--gold);color:#000;display:grid;place-items:center;font-weight:700}
+.tmr{font-size:2cqw;color:#ffd54a}
+.c{display:inline-grid;place-items:center;width:6cqw;height:8.4cqw;margin:0 .4cqw;border-radius:.5cqw;background:#fff;color:#111;font-weight:700;font-size:2.2cqw}.c.red{color:#c00}
+.pot{left:50%;top:1.5%;transform:translateX(-50%);text-align:center;min-width:23cqw}.pot b{font-size:3.4cqw;color:var(--gold)}
+.bot{left:3%;right:3%;top:70.5%;display:flex;gap:1.2cqw;background:#150b07;border:.2cqw solid #5b4426;border-radius:1cqw;padding:1.2cqw}
+.bot .b{font-size:1.9cqw;font-weight:700}
+.stp{display:flex;gap:.6cqw;align-items:center}
+.stp input{width:11cqw;font:inherit;font-size:2.4cqw;text-align:center;background:var(--ink);color:#fff;border:.2cqw solid #5b4426;border-radius:.8cqw;padding:.6cqw}
+.qb{left:3%;right:3%;top:84%;display:flex;gap:1cqw;align-items:center}.qb .b{text-align:center;min-width:8cqw}
+.toast,.res{left:50%;transform:translateX(-50%);background:#000c;border:.2cqw solid var(--gold);border-radius:1cqw;padding:.8cqw 2cqw;font-size:1.9cqw;text-align:center;pointer-events:none}
+.toast{top:38%;opacity:0;transition:opacity .3s}.toast.on{opacity:1}
+.res{top:46%;display:none;font-size:2.4cqw}
+.ov{inset:0;background:#000b;display:none;place-items:center;text-align:center;z-index:5}.ov.on{display:grid}
+.ov>div{background:var(--ink);border:.3cqw solid var(--gold);border-radius:2cqw;padding:2.5cqw 4cqw;font-size:2.4cqw}
+.ov .b{margin:1.6cqw .6cqw 0;font-size:2.2cqw;text-align:center}
+.logo{left:3%;top:1.5%;font-size:5cqw;font-weight:900;color:var(--gold);text-shadow:0 .3cqw 0 #7a1a1a}
+.ft{left:3%;right:3%;top:93%;display:flex;gap:1cqw;font-size:1.7cqw;align-items:center}.ft span{flex:1;text-align:center;opacity:.8}
+</style></head><body>
+<div class="st" id="st">
+ <canvas id="c" class="a" style="inset:0;width:100%;height:100%"></canvas>
+ <img class="a" src="/logo.jpg" alt="CASINO KING" style="left:1.5%;top:.4%;width:16%;mix-blend-mode:screen">
+ <div class="a pill" style="left:22%;top:2.2%;font-size:1.5cqw" id="room"></div>
+ <div class="a pill pot">POT AMOUNT<br><b id="pot">0</b></div>
+ <div class="a pill" style="right:3%;top:2.2%;font-size:2cqw" id="bal"></div><button class="b a" id="rules" style="right:24%;top:2.4%;font-size:1.7cqw">📖 RULES</button>
+ <div id="seats" class="a"></div>
+ <div class="a res" id="res"></div><div class="a toast" id="toast"></div>
+ <div class="a" style="left:2%;top:62%;display:flex;gap:1cqw">
+  <button class="b" id="see">👁 SEE<small>Look at my cards</small></button>
+  <button class="b" id="side">🃏 SIDE SHOW<small>Needs player's OK</small></button>
+  <button class="b" id="show">🎴 SHOW<small>2 players left</small></button></div>
+ <div class="a" style="right:2%;top:62%;display:flex;gap:1cqw">
+  <button class="b" id="blind">🙈 BLIND<small>Play unseen</small></button>
+  <button class="b" id="pack">🙏 PACK<small>Fold</small></button></div>
+ <div class="a bot">
+  <button class="b g" id="chaal">🪙 CHAAL<small>Match current bet</small></button>
+  <button class="b o" id="dbl">2× DOUBLE<small>Double the chaal</small></button>
+  <div class="pill" style="text-align:center;font-size:1.7cqw">CURRENT CHAAL<br><b style="font-size:3.4cqw;color:var(--gold)" id="ch">20</b></div>
+  <div style="align-self:center"><div class="stp"><button class="b r" id="mn">−</button><input id="amt" type="number" value="20" step="10"><button class="b g" id="pl">+</button></div>
+   <div style="font-size:1.3cqw;text-align:center;margin-top:.4cqw">MIN <span id="mi">20</span> · STEP 10</div></div>
+  <button class="b p" id="cus" style="margin-left:auto">✏️ CUSTOM BET<small>Use amount</small></button></div>
+ <div class="a qb"><span style="font-size:1.8cqw;color:var(--gold)">QUICK BET</span>
+  <button class="b" data-q="1000">1K</button><button class="b" data-q="5000">5K</button><button class="b" data-q="10000">10K</button><button class="b" data-q="50000">50K</button><button class="b" data-q="100000">1L</button>
+  <button class="b" id="oth">OTHER AMOUNT</button></div>
+ <div class="a ft"><span id="msg">Connecting…</span><a class="b" href="/statement.html" style="text-decoration:none">STATEMENT</a><button class="b" id="snd">SOUND ON</button><button class="b" id="mus">MUSIC ON</button></div>
+ <div class="a ov" id="md"><div id="mdc"></div></div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),$=id=>document.getElementById(id),f=n=>n.toLocaleString('en-IN'),SU=['♠','♥','♣','♦'],RK={11:'J',12:'Q',13:'K',14:'A'},E=['🧑','🧔','👩','😎','🧑‍🦱','👩‍🦰','🧓','👨'];
+let graceAt=0,S=null,token,left=0,wasMy=false,lastRes=null,lastPhase='';
+/* ---------- audio (synthesised; no files needed) ---------- */
+let AC,sOn=true,mOn=true,mt=null;
+const ac=()=>{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC};
+function tone(fr,d=.15,ty='sine',v=.12,t0=0){try{const a=ac(),o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=ty;o.frequency.value=fr;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(a.destination);o.start(t);o.stop(t+d)}catch{}}
+const sfx={chip:()=>{tone(1800,.05,'square',.05);tone(1200,.08,'square',.04,.04)},deal:()=>tone(500,.06,'triangle',.1),turn:()=>{tone(880,.12,'triangle',.12);tone(1175,.15,'triangle',.1,.12)},win:()=>[523,659,784,1047].forEach((x,i)=>tone(x,.35,'triangle',.14,i*.12))};
+const play=k=>sOn&&sfx[k]();
+function speak(t){if(!sOn||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}
+const CH=[[220,261.6,329.6],[174.6,220,261.6],[261.6,329.6,392],[196,246.9,293.7]];let ci=0;
+function music(){clearInterval(mt);mt=null;if(!mOn)return;const go=()=>{const c=CH[ci++%4];c.forEach((x,i)=>tone(x,1.8,'sine',.03,i*.35));tone(c[0]/2,1.9,'triangle',.05)};go();mt=setInterval(go,2000)}
+addEventListener('pointerdown',()=>{ac();if(!mt)music()},{once:true});
+$('snd').onclick=e=>{sOn=!sOn;e.target.textContent='SOUND '+(sOn?'ON':'OFF')};
+$('mus').onclick=e=>{mOn=!mOn;e.target.textContent='MUSIC '+(mOn?'ON':'OFF');music()};
+/* ---------- 3D table ---------- */
+const R=new THREE.WebGLRenderer({canvas:$('c'),antialias:true,alpha:true}),sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(42,1.25,.1,100);
+R.setPixelRatio(Math.min(2,devicePixelRatio||1));cam.position.set(0,13,8);cam.lookAt(0,0,2);
+sc.add(new THREE.AmbientLight(0xffffff,.85));const L=new THREE.PointLight(0xffe2b0,1.1,60);L.position.set(0,10,2);sc.add(L);
+const M=(g,c,o={})=>new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c,roughness:.6,...o}));
+const rim=M(new THREE.CylinderGeometry(6.5,6.5,.5,72),0x8a5426);rim.scale.z=.62;sc.add(rim);
+const felt=M(new THREE.CylinderGeometry(6,6,.52,72),0x14873f,{roughness:.95});felt.scale.z=.6;sc.add(felt);
+const ring=M(new THREE.TorusGeometry(6.05,.05,8,96),0xe2b04a,{metalness:.8,roughness:.3});ring.rotation.x=Math.PI/2;ring.scale.y=.6;ring.position.y=.28;sc.add(ring);
+const TX={};function tex(k){if(TX[k])return TX[k];const c=document.createElement('canvas');c.width=128;c.height=180;const g=c.getContext('2d');g.textAlign='center';
+ if(k==='b'){g.fillStyle='#a4181f';g.fillRect(0,0,128,180);g.strokeStyle='#e2b04a';g.lineWidth=5;g.strokeRect(8,8,112,164);g.fillStyle='#e2b04a';g.font='bold 46px Georgia';g.fillText('3',64,98);g.font='bold 22px Georgia';g.fillText('IKKE',64,130)}
+ else{const[r,s]=k.split('-').map(Number);g.fillStyle='#fff';g.fillRect(0,0,128,180);g.fillStyle=s%2?'#c00':'#111';g.font='bold 64px Georgia';g.fillText(RK[r]||r,64,80);g.font='60px serif';g.fillText(SU[s],64,150)}
+ return TX[k]=new THREE.CanvasTexture(c)}
+const SP=[[0,2.6],[3.4,1.4],[3.4,-1.4],[0,-2.6],[-3.4,-1.4],[-3.4,1.4]],AP=[[0,4.6],[4.9,1.4],[4.9,-1.4],[0,-4.4],[-4.9,-1.4],[-4.9,1.4]],SL={1:[0],2:[0,3],3:[0,2,4],4:[0,2,3,4],5:[0,1,2,4,5],6:[0,1,2,3,4,5]};
+const CM=[];for(let i=0;i<6;i++){const a=[];for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,1.25),new THREE.MeshBasicMaterial({map:tex('b'),side:THREE.DoubleSide}));m.visible=false;sc.add(m);a.push(m)}CM.push(a)}
+const CT={};function chipTex(col){if(CT[col])return CT[col];const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#'+col.toString(16).padStart(6,'0');g.fillRect(0,0,64,64);g.strokeStyle='#fff';g.lineWidth=5;g.setLineDash([9,7]);g.beginPath();g.arc(32,32,26,0,7);g.stroke();g.setLineDash([]);g.beginPath();g.arc(32,32,17,0,7);g.stroke();g.fillStyle='#fff';g.font='bold 18px Georgia';g.textAlign='center';g.fillText('20',32,38);return CT[col]=new THREE.CanvasTexture(c)}
+const CG=new THREE.Group();sc.add(CG);let cp=-1;
+function chips(p){if(p===cp)return;cp=p;CG.clear();const n=Math.min(40,Math.ceil(p/30)),cl=[0xc0262d,0x1d5fd1,0xe2b04a,0x1d8a37];
+ for(let i=0;i<n;i++){const m=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.09,20),[new THREE.MeshStandardMaterial({color:cl[i%4]}),new THREE.MeshStandardMaterial({map:chipTex(cl[i%4])}),new THREE.MeshStandardMaterial({color:cl[i%4]})]);m.position.set(-.9+(i%5)*.45,.32+Math.floor(i/5)*.1,0);CG.add(m)}}
+let PJ=[];function place(){const w=$('st').clientWidth,h=$('st').clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();cam.updateMatrixWorld();
+ PJ=AP.map(p=>{const v=new THREE.Vector3(p[0],.3,p[1]).project(cam);return{x:(v.x+1)*50,y:Math.min((1-v.y)*50,p[0]===0&&p[1]>0?64:99)}});if(S)hud()}
+addEventListener('resize',place);
+const slotOf=i=>{const n=S.seats.length,m=S.seats.findIndex(x=>x.me);return SL[n][(i-m+n)%n]};
+function r3(){const used=new Set(),deal=lastPhase!=='play'&&S.phase==='play';
+ S.seats.forEach((s,i)=>{const sl=slotOf(i);used.add(sl);const show=s.in&&s.active;
+  CM[sl].forEach((m,k)=>{m.visible=show;if(!show)return;const big=s.me,z=big?1.5:1;
+   m.material.map=tex(s.cards?`${s.cards[k].r}-${s.cards[k].s}`:'b');m.material.needsUpdate=true;m.scale.set(z,z,1);
+   m.userData.t=new THREE.Vector3(SP[sl][0]+(k-1)*.62*z,big?.9:.32,SP[sl][1]+(big?.5:0));
+   m.rotation.set(big?-1.05:-Math.PI/2,0,big?(1-k)*.12:0);if(deal){m.position.set(0,.5,0);play('deal')}})});
+ for(let i=0;i<6;i++)if(!used.has(i))CM[i].forEach(m=>m.visible=false);chips(S.pot)}
+(function loop(){requestAnimationFrame(loop);for(const a of CM)for(const m of a)if(m.visible&&m.userData.t)m.position.lerp(m.userData.t,.14);R.render(sc,cam)})();
+/* ---------- HUD ---------- */
+const me=()=>S.seats.find(x=>x.me),meIdx=()=>S.seats.findIndex(x=>x.me);
+function hud(){if(!PJ.length)return;const m=me(),mi=meIdx();
+ $('room').innerHTML=`TABLE ${S.table}<br>${S.seats.length} / 6 Players`;$('pot').textContent=f(S.pot);$('bal').textContent='🪙 '+f(m.bal);
+ $('ch').textContent=S.chaal;$('mi').textContent=S.chaal;if(+$('amt').value<S.chaal)$('amt').value=S.chaal;
+ let h='';S.seats.forEach((s,i)=>{const p=PJ[slotOf(i)],bd=!s.in?'">WAITING':!s.active?'x">PACKED':s.seen?'s">SEEN':'">BLIND';
+  h+=`<div class="seat ${s.me?'me':''} ${S.turn===i?'turn':''}" style="left:${p.x}%;top:${p.y}%;opacity:${s.in&&!s.active?.45:1}"><div class="av">${s.av?`<img src="/api/avatar/${s.uid}" alt="">`:E[s.id%8]}</div><div class="inf"><b>${s.me?'YOU':esc(s.name)}</b><i>${f(s.bal)}</i><span class="bd ${bd}</span>${s.in&&s.active?`<div class="bc">🔴 ${s.bet}</div>`:''}</div>${S.dealer===i?'<div class="dl">D</div>':''}${S.turn===i?'<span class="tmr" id="tm"></span>':''}</div>`});
+ $('seats').innerHTML=h;
+ const my=S.phase==='play'&&S.turn===mi&&m.active,n=S.seats.filter(x=>x.in&&x.active).length;
+ ['chaal','dbl','cus','pack','pl','mn'].forEach(k=>$(k).disabled=!my);
+ $('blind').disabled=!my||m.seen;$('see').disabled=S.phase!=='play'||!m.active||m.seen;$('side').disabled=!my||n<3||!m.seen;$('show').disabled=!my||n!==2;
+ $('msg').textContent=S.phase==='wait'&&!S.result?`Waiting for players (${S.seats.length}/3 minimum)`:'You can bet thousand to lacs';
+ if(my&&!wasMy){play('turn');speak('Your turn')}wasMy=my;
+ const r=$('res');if(S.result&&S.phase==='wait'){r.style.display='block';r.innerHTML=`🏆 ${esc(S.result.winner)} won ${f(S.result.pot)} · ${S.result.hand}`;
+  if(!lastRes){play('win');speak(S.result.winner+' wins')}}else r.style.display='none';lastRes=S.result}
+setInterval(()=>{if(graceAt>Date.now()){const g=Math.ceil((graceAt-Date.now())/1000);$('msg').textContent=`Your coins finished. Get coins added within ${Math.floor(g/60)}:${String(g%60).padStart(2,'0')} or you leave the table`}const e=$('tm');if(e)e.textContent='⏱ '+Math.max(0,Math.ceil((left-Date.now())/1000))},250);
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1800)}
+const cardsHtml=a=>a.map(c=>`<span class="c ${c.s%2?'red':''}">${RK[c.r]||c.r}${SU[c.s]}</span>`).join('');
+function modal(h,ms){$('mdc').innerHTML=h;$('md').classList.add('on');clearTimeout(modal.t);if(ms)modal.t=setTimeout(close,ms)}
+function close(){$('md').classList.remove('on')}
+/* ---------- Socket.IO ---------- */
+const sock=io();let tk,nm;try{tk=localStorage.getItem('t3');nm=localStorage.getItem('n3')}catch{}nm=nm||'Player'+(100+Math.random()*900|0);
+sock.on('connect',()=>sock.emit('join',{token:tk,name:nm}));
+sock.on('joined',d=>{token=d.token;try{localStorage.setItem('t3',token);localStorage.setItem('n3',nm)}catch{}});
+sock.on('state',s=>{const first=!S;S=s;left=Date.now()+(s.deadline-s.now);{const mm=s.seats.find(x=>x.me);graceAt=mm&&mm.grace?Date.now()+mm.grace:0}if(first)place();r3();hud();lastPhase=s.phase});
+sock.on('toast',toast);sock.on('err',toast);sock.on('authfail',()=>{try{localStorage.removeItem('t3')}catch{}location.href='/'});sock.on('kicked',()=>{toast('Coins finished. You left the table.');setTimeout(()=>location.href='/',2500)});
+sock.on('ev',e=>{const w={chaal:'Chaal',blind:'Blind',double:'Double',custom:'Raise',pack:'Pack',show:'Show',side:'Side show'}[e.t];if(!w)return;if(e.t!=='pack')play('chip');speak(w)});
+sock.on('sideReq',d=>{modal(`<b>${esc(d.from)}</b> wants a side show.<br>Allow them to compare cards?<br><button class="b g" id="ya">ALLOW</button><button class="b r" id="no">DECLINE</button>`,10000);
+ $('ya').onclick=()=>{sock.emit('sideAns',true);close()};$('no').onclick=()=>{sock.emit('sideAns',false);close()}});
+sock.on('sideShow',d=>{modal(`<b>${d.win?'You won the side show':'You lost the side show'}</b><br><br>Your cards<br>${cardsHtml(d.mine)}<br><br>Their cards<br>${cardsHtml(d.theirs)}`,4500)});
+const act=(type,amount)=>sock.emit('action',{type,amount});
+$('chaal').onclick=()=>act('chaal');$('blind').onclick=()=>act('blind');$('dbl').onclick=()=>act('double');$('pack').onclick=()=>act('pack');
+$('show').onclick=()=>act('show');$('side').onclick=()=>act('side');$('see').onclick=()=>act('see');
+$('cus').onclick=()=>act('custom',+$('amt').value);
+const amtV=()=>Math.max(S?S.chaal:20,parseInt($('amt').value)||20);
+$('pl').onclick=()=>$('amt').value=amtV()+10;$('mn').onclick=()=>$('amt').value=Math.max(S?S.chaal:20,amtV()-10);
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>$('amt').value=b.dataset.q);
+$('oth').onclick=()=>{$('amt').focus();$('amt').select()};
+$('rules').onclick=()=>modal('<b>3 IKKE rules</b><br><div style="text-align:left;font-size:.8em;margin-top:1cqw">Hand ranking, high to low:<br>1. Trail (AAA is the highest)<br>2. Pure sequence<br>3. Sequence<br>4. Color<br>5. Pair<br>6. High card<br><br>Boot 20 coins. Each turn is 10 seconds, then you pack automatically. SHOW is possible when 2 players are left. SIDE SHOW compares cards only if the previous player allows it.</div><button class="b" onclick="close()">CLOSE</button>');
+</script></body></html>
